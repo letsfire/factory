@@ -31,7 +31,7 @@ for i := 0; i < 100000; i++ {
 }
 
 for j := 0; j < 100000; j++ {
-	line1.Submit(j)
+	line2.Submit(j)
 }
 
 // 协程池数量可动态调整
