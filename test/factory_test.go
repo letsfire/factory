@@ -10,19 +10,19 @@ import (
 )
 
 var swg = new(sync.WaitGroup)
-var mst = factory.NewMaster(100000)
+var mst = factory.NewMaster(200000)
 
 var counter int64
 
-var lineFunc1 = func(args ...interface{}) {
-	atomic.AddInt64(&counter, int64(args[0].(int)))
+var lineFunc1 = func(v interface{}) {
+	atomic.AddInt64(&counter, int64(v.(int)))
 	time.Sleep(time.Millisecond * 10)
 	swg.Done()
 }
 
-var lineFunc2 = func(args ...interface{}) {
-	atomic.AddInt64(&counter, -int64(args[0].(int)))
-	time.Sleep(time.Millisecond * 5)
+var lineFunc2 = func(v interface{}) {
+	atomic.AddInt64(&counter, -int64(v.(int)))
+	time.Sleep(time.Millisecond * 10)
 	swg.Done()
 }
 
@@ -32,8 +32,8 @@ var line2 = mst.AddLine("test.line.2", lineFunc2)
 func BenchmarkWithFactory(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		swg.Add(2)
-		line1.SubmitTop(1)
-		line2.SubmitMiddle(1)
+		line1.Submit(1)
+		line2.Submit(1)
 	}
 	swg.Wait()
 	if counter != 0 {

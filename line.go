@@ -3,40 +3,28 @@ package factory
 // Line 工作流水线
 type Line struct {
 	name   string
-	level  Level
 	master *Master
-	action func(...interface{})
+	action func(interface{})
 }
 
-func (l *Line) Submit(args ...interface{}) {
-	switch l.level {
-	case Top:
-		l.SubmitTop(args...)
-	case Middle:
-		l.SubmitMiddle(args...)
-	default:
-		l.SubmitBottom(args...)
+func (l *Line) Submit(args interface{}) {
+	l.master.getWorker().assign(l, args)
+}
+
+func (l *Line) Execute(args interface{}) { l.action(args) }
+
+func (l *Line) SetPanicHandler(handler func(interface{})) {
+	oldAction := l.action
+	l.action = func(i interface{}) {
+		defer func() {
+			if p := recover(); p != nil {
+				handler(p)
+			}
+		}()
+		oldAction(i)
 	}
 }
 
-func (l *Line) SubmitTop(args ...interface{}) {
-	l.master.topChan <- task{action: l.action, params: args}
-}
-
-func (l *Line) SubmitMiddle(args ...interface{}) {
-	l.master.middleChan <- task{action: l.action, params: args}
-}
-
-func (l *Line) SubmitBottom(args ...interface{}) {
-	l.master.bottomChan <- task{action: l.action, params: args}
-}
-
-func (l *Line) SetLevel(lv Level)           { l.level = lv }
-func (l *Line) Execute(args ...interface{}) { l.action(args...) }
-
-func NewLine(master *Master, name string, action func(...interface{})) (l *Line) {
-	return &Line{
-		master: master, name: name,
-		action: action, level: Bottom,
-	}
+func NewLine(master *Master, name string, action func(interface{})) (l *Line) {
+	return &Line{master: master, name: name, action: action}
 }
