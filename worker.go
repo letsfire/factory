@@ -2,16 +2,14 @@ package factory
 
 import (
 	"log"
-	"time"
 )
 
 // worker 工作者角色
 type worker struct {
-	master      *Master
-	recycleTime time.Time
+	master *Master
 }
 
-func (w *worker) process() {
+func (w worker) process() {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("worker broken from panic, %#v", p)
@@ -33,7 +31,7 @@ func (w *worker) process() {
 				}
 			}
 		}
-		t.execute()
+		t.action(t.params...)
 	}
 }
 

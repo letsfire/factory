@@ -11,12 +11,16 @@ type Master struct {
 func NewMaster(size int) (m *Master) {
 	m = &Master{
 		workers:    make([]worker, size),
-		topChan:    make(chan task, size>>2),
-		middleChan: make(chan task, size>>2),
-		bottomChan: make(chan task, size>>1),
+		topChan:    make(chan task, 1),
+		middleChan: make(chan task, 1),
+		bottomChan: make(chan task, 1),
 	}
 	for i := 0; i < size; i++ {
 		m.workers[i] = newWorker(m)
 	}
 	return
+}
+
+func (m *Master) AddLine(name string, action func(...interface{})) *Line {
+	return NewLine(m, name, action)
 }

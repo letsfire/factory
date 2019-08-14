@@ -26,8 +26,8 @@ var lineFunc2 = func(args ...interface{}) {
 	swg.Done()
 }
 
-var line1 = factory.NewLine(mst, "test.line.1", lineFunc1)
-var line2 = factory.NewLine(mst, "test.line.2", lineFunc2)
+var line1 = mst.AddLine("test.line.1", lineFunc1)
+var line2 = mst.AddLine("test.line.2", lineFunc2)
 
 func BenchmarkWithFactory(b *testing.B) {
 	for i := 0; i < b.N; i++ {

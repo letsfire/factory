@@ -20,15 +20,15 @@ func (l *Line) Submit(args ...interface{}) {
 }
 
 func (l *Line) SubmitTop(args ...interface{}) {
-	l.master.topChan <- task{line: l, args: args}
+	l.master.topChan <- task{action: l.action, params: args}
 }
 
 func (l *Line) SubmitMiddle(args ...interface{}) {
-	l.master.middleChan <- task{line: l, args: args}
+	l.master.middleChan <- task{action: l.action, params: args}
 }
 
 func (l *Line) SubmitBottom(args ...interface{}) {
-	l.master.bottomChan <- task{line: l, args: args}
+	l.master.bottomChan <- task{action: l.action, params: args}
 }
 
 func (l *Line) SetLevel(lv Level)           { l.level = lv }
