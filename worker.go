@@ -1,49 +1,62 @@
 package factory
 
 import (
-	"log"
+	"fmt"
+	"sync/atomic"
 )
 
 // worker 工作者角色
 type worker struct {
-	line *Line
-	args chan interface{}
+	isBusy int32
+	action func(interface{})
+	params chan interface{}
 }
 
 func (w *worker) process() bool {
 	defer func() {
 		if p := recover(); p != nil {
-			log.Printf("worker broken, panic = %#v", p)
+			fmt.Printf("worker broken, panic = %v", p)
 		}
 	}()
-	for args := range w.args {
-		if _, ok := args.(struct{}); ok {
+	for params := range w.params {
+		if _, ok := params.(struct{}); ok {
 			return true
 		}
-		w.line.action(args)
+		w.action(params)
+		atomic.StoreInt32(&w.isBusy, 0)
 	}
 	return false
 }
 
-func (w *worker) assign(l *Line, args interface{}) {
-	w.line = l
-	w.args <- args
+func (w *worker) assign(action func(interface{}), params interface{}) bool {
+	if atomic.CompareAndSwapInt32(&w.isBusy, 0, 1) {
+		w.action = action
+		w.params <- params
+		return true
+	}
+	return false
 }
 
 func (w *worker) shutdown() {
-	w.args <- struct{}{}
+	w.params <- struct{}{}
 }
 
 func newWorker() (w *worker) {
 	w = &worker{
-		args: make(chan interface{}),
+		params: make(chan interface{}),
 	}
-	go func() {
-		for {
-			if quit := w.process(); quit {
-				break
-			}
+	go func(w *worker) {
+		for w.process() == false {
+			atomic.StoreInt32(&w.isBusy, 0)
 		}
-	}()
-	return w
+		// 置为繁忙状态
+		atomic.StoreInt32(&w.isBusy, 1)
+		// 可能后入任务
+		select {
+		case params := <-w.params:
+			w.action(params)
+		default:
+		}
+	}(w)
+	return
 }

@@ -1,5 +1,9 @@
 package factory
 
+import (
+	"math"
+)
+
 // Line 工作流水线
 type Line struct {
 	name   string
@@ -8,7 +12,18 @@ type Line struct {
 }
 
 func (l *Line) Submit(args interface{}) {
-	l.master.getWorker().assign(l, args)
+	if l.master.getWorker().assign(l.action, args) {
+		return
+	}
+	tryNum := int(float64(l.master.ingNum) * 0.5)
+	for n := 0; n < tryNum; n++ {
+		if l.master.getWorker().assign(l.action, args) {
+			return
+		}
+	}
+	addSize := math.Max(2, float64(l.master.ingNum)*0.25)
+	l.master.AdjustSize(int(l.master.ingNum) + int(addSize))
+	l.Submit(args)
 }
 
 func (l *Line) Execute(args interface{}) { l.action(args) }
