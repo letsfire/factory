@@ -5,7 +5,7 @@ Go语言的协程池 , 节省内存 , 减少GC压力
 
 ## 用法
 ```go
-// 新建协程池,最大允许协程数20000和初始化数量8
+// 新建协程池 , 最大允许协程数20000和初始化数量8
 // 协程工人繁忙不够用的情况下 , 内部实现自动扩容
 // 扩容不会超过您指定的最大允许协程数量
 var master = factory.NewMaster(20000, 8)
@@ -42,4 +42,8 @@ master.Shutdown()           // 等于 master.AdjustSize(0)
 ```
 
 ## Benchmark
-![基准测试](./img/benchmark.png)
+[测试代码](./bench_test.go) , 增加 `runTimes` 参数原始的 `Goroutine` 会出现崩溃 , 使用 `Factory` 的表现稳定
+
+![基准测试_1](img/benchmark_1.png)
+
+![基准测试_2](img/benchmark_2.png)
