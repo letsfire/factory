@@ -7,9 +7,10 @@ import (
 )
 
 var swg = new(sync.WaitGroup)
-var mst = NewMaster(10000, 8)
+var mst = NewMaster(50000, 8)
 
 var counter int64
+var runTimes = 50000
 
 var lineFunc1 = func(v interface{}) {
 	defer swg.Done()

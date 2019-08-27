@@ -1,4 +1,3 @@
-## Factory
 Go语言的协程池 , 节省内存 , 减少GC压力
 
 ## 安装
@@ -41,3 +40,6 @@ master.Running()            // 正在运行的协程工人数量
 master.AdjustSize(100)      // 指定数量进行扩容或缩容
 master.Shutdown()           // 等于 master.AdjustSize(0)
 ```
+
+## Benchmark
+![基准测试](./img/benchmark.png)
