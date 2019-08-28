@@ -46,8 +46,8 @@ func TestNewMaster(t *testing.T) {
 
 	// time.Sleep(time.Second *5)
 
-	// 只要大于流水线方法的执行时间
-	time.Sleep(time.Millisecond * 11)
+	// Shutdown 已经确保任务执行完毕, 协程数量只是GO内核处理的问题
+	time.Sleep(time.Second * 1)
 
 	fmt.Println(runtime.NumGoroutine())
 }
