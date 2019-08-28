@@ -24,30 +24,28 @@ func TestNewMaster(t *testing.T) {
 		h.mux.Lock()
 		h.a++
 		if h.a%10000 == 0 {
-			fmt.Println(h.a)
+			// fmt.Println(h.a)
 		}
 		h.mux.Unlock()
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Second)
 	})
 
 	// 根据业务场景将参数提交
 	mux := &sync.Mutex{}
 	h := hh{mux: mux}
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 10000; i++ {
 		h.a = i
 		line1.Submit(h)
 	}
 
 	// 协程池数量可动态调整
-	master.Running() // 正在运行的协程工人数量
-	//master.AdjustSize(100)      // 指定数量进行扩容或缩容
+	// master.Running() // 正在运行的协程工人数量
+	// master.AdjustSize(100)      // 指定数量进行扩容或缩容
 	master.Shutdown() // 等于 master.AdjustSize(0)
+
+	// 通常会大于 2
 	fmt.Println(runtime.NumGoroutine())
-
-	// time.Sleep(time.Second *5)
-
-	// Shutdown 已经确保任务执行完毕, 协程数量只是GO内核处理的问题
-	time.Sleep(time.Second * 1)
-
+	// 极短暂休眠
+	time.Sleep(time.Nanosecond)
 	fmt.Println(runtime.NumGoroutine())
 }
