@@ -43,6 +43,11 @@ func TestNewMaster(t *testing.T) {
 	//master.AdjustSize(100)      // 指定数量进行扩容或缩容
 	master.Shutdown() // 等于 master.AdjustSize(0)
 	fmt.Println(runtime.NumGoroutine())
-	time.Sleep(time.Second * 5)
+
+	// time.Sleep(time.Second *5)
+
+	// 只要大于流水线方法的执行时间
+	time.Sleep(time.Millisecond * 11)
+
 	fmt.Println(runtime.NumGoroutine())
 }
