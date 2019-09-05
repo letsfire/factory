@@ -13,17 +13,19 @@ type worker struct {
 }
 
 func (w *worker) process() (quit bool) {
-	defer func(quit *bool) {
+	defer func() {
 		if p := recover(); p != nil {
-			*quit = false
 			fmt.Printf("worker broken, panic = %v", p)
 		}
-	}(&quit)
+	}()
 	for params := range w.params {
+		if _, ok := params.(struct{}); ok {
+			return true
+		}
 		w.action(params)
 		atomic.StoreInt32(&w.isBusy, 0)
 	}
-	return true
+	return false
 }
 
 func (w *worker) assign(action func(interface{}), params interface{}) bool {
@@ -36,16 +38,7 @@ func (w *worker) assign(action func(interface{}), params interface{}) bool {
 }
 
 func (w *worker) shutdown() {
-	// 置为繁忙状态
-	atomic.StoreInt32(&w.isBusy, 1)
-	// 可能存在任务
-	select {
-	case params := <-w.params:
-		w.action(params)
-	default:
-	}
-	// 关闭任务通道
-	close(w.params)
+	w.params <- struct{}{}
 }
 
 func newWorker() (w *worker) {
@@ -59,6 +52,16 @@ func newWorker() (w *worker) {
 			}
 			atomic.StoreInt32(&w.isBusy, 0)
 		}
+		// 置为繁忙状态
+		atomic.StoreInt32(&w.isBusy, 1)
+		// 可能存在任务
+		select {
+		case params := <-w.params:
+			w.action(params)
+		default:
+		}
+		// 关闭任务通道
+		close(w.params)
 	}(w)
 	return
 }
