@@ -48,13 +48,13 @@ func (m *Master) AdjustSize(newSize int) {
 		if cursor := atomic.LoadInt64(&m.cursor); cursor > int64(newSize) {
 			atomic.StoreInt64(&m.cursor, int64(newSize))
 		}
-		for _, w := range m.workers[newSize:] {
+		for idx, w := range m.workers[newSize:] {
 			if w == nil {
 				break
 			}
 			w.shutdown()
+			m.workers[idx] = nil
 		}
-		m.workers = m.workers[0:newSize]
 	}
 }
 
