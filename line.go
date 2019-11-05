@@ -15,14 +15,14 @@ func (l *Line) Submit(args interface{}) {
 	if l.master.getWorker().assign(l.action, args) {
 		return
 	}
-	tryNum := int(float64(l.master.ingNum) * 0.5)
+	tryNum := int(float64(l.master.Running()) * 0.5)
 	for n := 0; n < tryNum; n++ {
 		if l.master.getWorker().assign(l.action, args) {
 			return
 		}
 	}
-	addSize := math.Max(2, float64(l.master.ingNum)*0.25)
-	l.master.AdjustSize(int(l.master.ingNum) + int(addSize))
+	addSize := math.Max(2, float64(l.master.Running())*0.25)
+	l.master.AdjustSize(l.master.Running() + int(addSize))
 	l.Submit(args)
 }
 

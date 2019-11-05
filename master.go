@@ -9,21 +9,23 @@ import (
 type Master struct {
 	sync.Mutex
 	maxNum  int64
-	ingNum  int64
 	cursor  int64
-	workers []*worker
+	idxFlag int32
+	tryFlag int32
+	synCond *sync.Cond
+	workers [2]map[int64]*worker
 }
 
-func NewMaster(maxNum, initNum int) (m *Master) {
-	m = &Master{
-		maxNum:  int64(maxNum),
-		ingNum:  int64(initNum),
-		workers: make([]*worker, maxNum),
-	}
+func NewMaster(maxNum, initNum int) *Master {
+	m := new(Master)
+	m.maxNum = int64(maxNum)
+	m.workers[0] = make(map[int64]*worker, initNum)
 	for i := 0; i < initNum; i++ {
-		m.workers[i] = newWorker()
+		m.workers[0][int64(i)] = newWorker()
 	}
-	return
+	m.workers[1] = m.workers[0]
+	m.synCond = sync.NewCond(&sync.Mutex{})
+	return m
 }
 
 func (m *Master) AddLine(name string, action func(interface{})) *Line {
@@ -31,44 +33,59 @@ func (m *Master) AddLine(name string, action func(interface{})) *Line {
 }
 
 func (m *Master) AdjustSize(newSize int) {
-	if int64(newSize) > m.maxNum {
+	if newSize > int(m.maxNum) {
 		newSize = int(m.maxNum)
 	}
 
 	m.Lock()
 	defer m.Unlock()
 
-	if diff := newSize - int(m.ingNum); diff > 0 {
-		for i := 0; i < diff; i++ {
-			m.workers[m.ingNum] = newWorker()
-			atomic.AddInt64(&m.ingNum, 1)
+	workers := m.usingGroup()
+	diff := newSize - len(workers)
+
+	if diff > 0 {
+		for i := len(workers); i < newSize; i++ {
+			workers[int64(i)] = newWorker()
 		}
 	} else if diff < 0 {
-		atomic.StoreInt64(&m.ingNum, int64(newSize))
-		if cursor := atomic.LoadInt64(&m.cursor); cursor > int64(newSize) {
-			atomic.StoreInt64(&m.cursor, int64(newSize))
-		}
-		for idx, w := range m.workers[newSize:] {
-			if w == nil {
-				break
-			}
-			w.shutdown()
-			m.workers[idx] = nil
+		for i := len(workers); i > newSize; i-- {
+			idx := int64(i) - 1
+			workers[idx].shutdown()
+			delete(workers, idx)
 		}
 	}
+
+	idxFlag := 2 + ^m.idxFlag
+	m.workers[idxFlag] = workers
+	atomic.StoreInt32(&m.idxFlag, idxFlag)
+	m.workers[2+^m.idxFlag] = m.workers[idxFlag]
 }
 
-func (m *Master) Running() int64 {
-	return atomic.LoadInt64(&m.ingNum)
+func (m *Master) Running() int {
+	return len(m.usingGroup())
 }
 
 func (m *Master) Shutdown() {
 	m.AdjustSize(0) // 关闭所有worker
 }
 
+func (m *Master) usingGroup() map[int64]*worker {
+	return m.workers[atomic.LoadInt32(&m.idxFlag)]
+}
+
 func (m *Master) getWorker() *worker {
-	atomic.CompareAndSwapInt64(&m.cursor, m.ingNum, 0)
 	idx := atomic.AddInt64(&m.cursor, 1)
-	w := m.workers[idx-1]
-	return w
+	if w, ok := m.usingGroup()[idx-1]; ok && w != nil {
+		return w
+	}
+	if atomic.CompareAndSwapInt32(&m.tryFlag, 0, 1) {
+		atomic.StoreInt64(&m.cursor, 0)
+		atomic.StoreInt32(&m.tryFlag, 0)
+		m.synCond.Broadcast()
+	} else {
+		m.synCond.L.Lock()
+		m.synCond.Wait()
+		m.synCond.L.Unlock()
+	}
+	return m.getWorker()
 }
