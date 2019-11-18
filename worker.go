@@ -57,14 +57,14 @@ func newWorker() (w *worker) {
 		}
 		// 置为繁忙状态
 		atomic.StoreInt32(&w.isBusy, 1)
+		// 关闭任务通道
+		defer close(w.params)
 		// 可能存在任务
 		select {
 		case params := <-w.params:
 			w.action(params)
 		case <-time.Tick(time.Millisecond):
 		}
-		// 关闭任务通道
-		close(w.params)
 	}(w)
 	return
 }
