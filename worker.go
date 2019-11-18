@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 )
 
 type exitSignal struct{}
@@ -60,7 +61,7 @@ func newWorker() (w *worker) {
 		select {
 		case params := <-w.params:
 			w.action(params)
-		default:
+		case <-time.Tick(time.Millisecond):
 		}
 		// 关闭任务通道
 		close(w.params)

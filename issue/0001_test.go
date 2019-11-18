@@ -48,6 +48,6 @@ func TestNewMaster(t *testing.T) {
 	fmt.Println(master.Running()) // 正在运行的协程工人数量
 
 	fmt.Println(runtime.NumGoroutine()) // 通常会大于 2
-	time.Sleep(time.Nanosecond)         // 极短暂休眠
+	time.Sleep(time.Millisecond * 5)    // 极短暂休眠
 	fmt.Println(runtime.NumGoroutine()) // 必须会等于 2
 }
