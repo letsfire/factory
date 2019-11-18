@@ -3,27 +3,29 @@ package factory
 import (
 	"sync"
 	"sync/atomic"
+
+	"github.com/letsfire/utils"
 )
 
 // Master 管理者角色
 type Master struct {
 	sync.Mutex
-	maxNum  int64
-	ingNum  int64
-	cursor  int64
-	workers []*worker
+	maxNum     int
+	ingNum     int
+	cursor     int64
+	workers    sync.Map
+	resetGuard *utils.Guard
 }
 
-func NewMaster(maxNum, initNum int) (m *Master) {
-	m = &Master{
-		maxNum:  int64(maxNum),
-		ingNum:  int64(initNum),
-		workers: make([]*worker, maxNum),
-	}
+func NewMaster(maxNum, initNum int) *Master {
+	m := new(Master)
+	m.maxNum = maxNum
+	m.ingNum = initNum
 	for i := 0; i < initNum; i++ {
-		m.workers[i] = newWorker()
+		m.workers.Store(i, newWorker())
 	}
-	return
+	m.resetGuard = utils.NewGuard()
+	return m
 }
 
 func (m *Master) AddLine(name string, action func(interface{})) *Line {
@@ -31,35 +33,31 @@ func (m *Master) AddLine(name string, action func(interface{})) *Line {
 }
 
 func (m *Master) AdjustSize(newSize int) {
-	if int64(newSize) > m.maxNum {
-		newSize = int(m.maxNum)
+	if newSize > m.maxNum {
+		newSize = m.maxNum
 	}
-
 	m.Lock()
 	defer m.Unlock()
-
-	if diff := newSize - int(m.ingNum); diff > 0 {
-		for i := 0; i < diff; i++ {
-			m.workers[m.ingNum] = newWorker()
-			atomic.AddInt64(&m.ingNum, 1)
+	if newSize > m.ingNum {
+		for i := m.ingNum; i < newSize; i++ {
+			m.workers.Store(i, newWorker())
 		}
-	} else if diff < 0 {
-		atomic.StoreInt64(&m.ingNum, int64(newSize))
-		if cursor := atomic.LoadInt64(&m.cursor); cursor > int64(newSize) {
-			atomic.StoreInt64(&m.cursor, int64(newSize))
-		}
-		for _, w := range m.workers[newSize:] {
-			if w == nil {
-				break
+	} else if newSize < m.ingNum {
+		for i := m.ingNum; i > newSize; i-- {
+			idx := i - 1
+			if v, ok := m.workers.Load(idx); ok {
+				m.workers.Delete(idx)
+				v.(*worker).shutdown()
 			}
-			w.shutdown()
 		}
-		m.workers = m.workers[0:newSize]
 	}
+	m.ingNum = newSize
 }
 
-func (m *Master) Running() int64 {
-	return atomic.LoadInt64(&m.ingNum)
+func (m *Master) Running() int {
+	m.Lock()
+	defer m.Unlock()
+	return m.ingNum
 }
 
 func (m *Master) Shutdown() {
@@ -67,8 +65,15 @@ func (m *Master) Shutdown() {
 }
 
 func (m *Master) getWorker() *worker {
-	atomic.CompareAndSwapInt64(&m.cursor, m.ingNum, 0)
-	idx := atomic.AddInt64(&m.cursor, 1)
-	w := m.workers[idx-1]
-	return w
+	idx := int(atomic.AddInt64(&m.cursor, 1)) - 1
+	if w, ok := m.workers.Load(idx); ok && w != nil {
+		return w.(*worker)
+	} else if m.ingNum == 0 {
+		panic("factory: the master has been shutdown")
+	}
+	m.resetGuard.Run("get-worker", func() (i interface{}, e error) {
+		atomic.StoreInt64(&m.cursor, 0)
+		return nil, nil
+	})
+	return m.getWorker()
 }

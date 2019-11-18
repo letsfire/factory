@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 )
 
+type exitSignal struct{}
+
 // worker 工作者角色
 type worker struct {
 	isBusy int32
@@ -19,7 +21,7 @@ func (w *worker) process() (quit bool) {
 		}
 	}()
 	for params := range w.params {
-		if _, ok := params.(struct{}); ok {
+		if _, ok := params.(exitSignal); ok {
 			return true
 		}
 		w.action(params)
@@ -38,7 +40,7 @@ func (w *worker) assign(action func(interface{}), params interface{}) bool {
 }
 
 func (w *worker) shutdown() {
-	w.params <- struct{}{}
+	w.params <- exitSignal{}
 }
 
 func newWorker() (w *worker) {

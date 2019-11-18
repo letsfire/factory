@@ -7,7 +7,7 @@ import (
 )
 
 var swg = new(sync.WaitGroup)
-var mst = NewMaster(50000, 8)
+var mst = NewMaster(50000, 5000)
 
 var counter int64
 var runTimes = 50000
