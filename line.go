@@ -7,19 +7,25 @@ import (
 
 // Line 工作流水线
 type Line struct {
-	sync.WaitGroup
-	name   string
-	master *Master
-	action func(interface{})
+	name      string
+	master    *Master
+	action    func(interface{})
+	waitGroup *sync.WaitGroup
+}
+
+func (l *Line) Wait() {
+	l.waitGroup.Wait()
 }
 
 func (l *Line) Submit(args interface{}) {
 	if l.master.getWorker().assign(l.action, args) {
+		l.waitGroup.Add(1)
 		return
 	}
 	tryNum := int(float64(l.master.Running()) * 0.5)
 	for n := 0; n < tryNum; n++ {
 		if l.master.getWorker().assign(l.action, args) {
+			l.waitGroup.Add(1)
 			return
 		}
 	}
@@ -28,7 +34,10 @@ func (l *Line) Submit(args interface{}) {
 	l.Submit(args)
 }
 
-func (l *Line) Execute(args interface{}) { l.action(args) }
+func (l *Line) Execute(args interface{}) {
+	l.waitGroup.Add(1)
+	l.action(args)
+}
 
 func (l *Line) SetPanicHandler(handler func(interface{})) {
 	oldAction := l.action
@@ -43,11 +52,14 @@ func (l *Line) SetPanicHandler(handler func(interface{})) {
 }
 
 func NewLine(master *Master, name string, action func(interface{})) *Line {
-	l := Line{master: master, name: name}
-	l.action = func(i interface{}) {
-		l.Add(1)
-		action(i)
-		l.Done()
+	wg := new(sync.WaitGroup)
+	return &Line{
+		name:   name,
+		master: master,
+		action: func(i interface{}) {
+			defer wg.Done()
+			action(i)
+		},
+		waitGroup: wg,
 	}
-	return &l
 }

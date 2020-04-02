@@ -13,13 +13,11 @@ var counter int64
 var runTimes = 50000
 
 var lineFunc1 = func(v interface{}) {
-	defer swg.Done()
 	atomic.AddInt64(&counter, int64(v.(int)))
 	time.Sleep(time.Microsecond)
 }
 
 var lineFunc2 = func(v interface{}) {
-	defer swg.Done()
 	atomic.AddInt64(&counter, -int64(v.(int)))
 	time.Sleep(time.Microsecond)
 }
