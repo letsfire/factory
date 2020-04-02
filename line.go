@@ -2,10 +2,12 @@ package factory
 
 import (
 	"math"
+	"sync"
 )
 
 // Line 工作流水线
 type Line struct {
+	sync.WaitGroup
 	name   string
 	master *Master
 	action func(interface{})
@@ -40,6 +42,12 @@ func (l *Line) SetPanicHandler(handler func(interface{})) {
 	}
 }
 
-func NewLine(master *Master, name string, action func(interface{})) (l *Line) {
-	return &Line{master: master, name: name, action: action}
+func NewLine(master *Master, name string, action func(interface{})) *Line {
+	l := Line{master: master, name: name}
+	l.action = func(i interface{}) {
+		l.Add(1)
+		action(i)
+		l.Done()
+	}
+	return &l
 }
