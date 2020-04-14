@@ -28,8 +28,8 @@ func NewMaster(maxNum, initNum int) *Master {
 	return m
 }
 
-func (m *Master) AddLine(name string, action func(interface{})) *Line {
-	return NewLine(m, name, action)
+func (m *Master) AddLine(action func(interface{})) *Line {
+	return NewLine(m, action)
 }
 
 func (m *Master) AdjustSize(newSize int) {

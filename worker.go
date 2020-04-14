@@ -31,9 +31,10 @@ func (w *worker) process() (quit bool) {
 	return false
 }
 
-func (w *worker) assign(action func(interface{}), params interface{}) bool {
+func (w *worker) assign(line *Line, params interface{}) bool {
 	if atomic.CompareAndSwapInt32(&w.isBusy, 0, 1) {
-		w.action = action
+		line.waitGroup.Add(1)
+		w.action = line.action
 		w.params <- params
 		return true
 	}

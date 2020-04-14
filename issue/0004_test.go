@@ -15,7 +15,7 @@ func TestMaster(t *testing.T) {
 	wg2 := sync.WaitGroup{}
 	w := factory.NewMaster(10, 2)
 	ctx, cel := context.WithCancel(context.Background())
-	li := w.AddLine("testli", func(e interface{}) {
+	li := w.AddLine(func(e interface{}) {
 		defer wg.Done()
 	})
 	for i := 0; i < 100; i++ {

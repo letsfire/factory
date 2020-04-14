@@ -7,7 +7,6 @@ import (
 
 // Line 工作流水线
 type Line struct {
-	name      string
 	master    *Master
 	action    func(interface{})
 	waitGroup *sync.WaitGroup
@@ -18,14 +17,12 @@ func (l *Line) Wait() {
 }
 
 func (l *Line) Submit(args interface{}) {
-	if l.master.getWorker().assign(l.action, args) {
-		l.waitGroup.Add(1)
+	if l.master.getWorker().assign(l, args) {
 		return
 	}
 	tryNum := int(float64(l.master.Running()) * 0.5)
 	for n := 0; n < tryNum; n++ {
-		if l.master.getWorker().assign(l.action, args) {
-			l.waitGroup.Add(1)
+		if l.master.getWorker().assign(l, args) {
 			return
 		}
 	}
@@ -51,10 +48,9 @@ func (l *Line) SetPanicHandler(handler func(interface{})) {
 	}
 }
 
-func NewLine(master *Master, name string, action func(interface{})) *Line {
+func NewLine(master *Master, action func(interface{})) *Line {
 	wg := new(sync.WaitGroup)
 	return &Line{
-		name:   name,
 		master: master,
 		action: func(i interface{}) {
 			defer wg.Done()

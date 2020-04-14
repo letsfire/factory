@@ -19,7 +19,7 @@ type hh struct {
 func TestNewMaster(t *testing.T) {
 	master := factory.NewMaster(10000, 10)
 	// 新建第一条工作流水线
-	var line1 = master.AddLine("demo.line.1", func(args interface{}) {
+	var line1 = master.AddLine(func(args interface{}) {
 		h := args.(hh)
 		h.mux.Lock()
 		h.a++
