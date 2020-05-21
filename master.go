@@ -28,6 +28,13 @@ func NewMaster(maxNum, initNum int) *Master {
 	return m
 }
 
+func (m *Master) Resize(maxNum int) {
+	m.maxNum = maxNum
+	if m.ingNum > maxNum {
+		m.AdjustSize(maxNum)
+	}
+}
+
 func (m *Master) AddLine(action func(interface{})) *Line {
 	return NewLine(m, action)
 }
