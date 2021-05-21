@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
-
-	"github.com/letsfire/utils"
 )
 
 type exitSignal struct{}
@@ -18,8 +16,8 @@ type worker struct {
 }
 
 func (w *worker) process() (quit bool) {
-	defer utils.HandlePanic(func(i interface{}) {
-		fmt.Printf("worker broken, panic: %v, call stack: \n%s", i, utils.StackTrace(0))
+	defer handlePanic(func(i interface{}) {
+		fmt.Printf("worker broken, panic: %v, call stack: \n%s", i, stackTrace(0))
 	})
 	for params := range w.params {
 		if _, ok := params.(exitSignal); ok {

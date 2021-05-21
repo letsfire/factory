@@ -3,8 +3,6 @@ package factory
 import (
 	"sync"
 	"sync/atomic"
-
-	"github.com/letsfire/utils"
 )
 
 // Master 管理者角色
@@ -14,7 +12,7 @@ type Master struct {
 	ingNum     int
 	cursor     int64
 	workers    sync.Map
-	resetGuard *utils.Guard
+	resetGuard *guard
 }
 
 func NewMaster(maxNum, initNum int) *Master {
@@ -24,7 +22,7 @@ func NewMaster(maxNum, initNum int) *Master {
 	for i := 0; i < initNum; i++ {
 		m.workers.Store(i, newWorker())
 	}
-	m.resetGuard = utils.NewGuard()
+	m.resetGuard = newGuard()
 	return m
 }
 
@@ -78,7 +76,7 @@ func (m *Master) getWorker() *worker {
 	} else if m.ingNum == 0 {
 		panic("factory: the master has been shutdown")
 	}
-	m.resetGuard.Run("get-worker", func() (i interface{}, e error) {
+	_, _ = m.resetGuard.run("get-worker", func() (i interface{}, e error) {
 		atomic.StoreInt64(&m.cursor, 0)
 		return nil, nil
 	})
