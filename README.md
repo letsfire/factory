@@ -31,6 +31,8 @@ for i := 0; i < 100000; i++ {
 	line1.Submit(i)
 }
 
+line1.Wait() // 等待流水线全部执行完毕
+
 for j := 0; j < 100000; j++ {
 	line2.Submit(j)
 }
