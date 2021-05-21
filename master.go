@@ -76,7 +76,7 @@ func (m *Master) getWorker() *worker {
 	} else if m.ingNum == 0 {
 		panic("factory: the master has been shutdown")
 	}
-	_, _ = m.resetGuard.run("get-worker", func() (i interface{}, e error) {
+	m.resetGuard.run("get-worker", func() (i interface{}, e error) {
 		atomic.StoreInt64(&m.cursor, 0)
 		return nil, nil
 	})

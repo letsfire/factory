@@ -18,6 +18,10 @@ var line1 = master.AddLine("demo.line.1", func(args interface{}) {
 
 })
 
+line1.SetPanicHandler(func(err interface) {
+    // TODO 异常处理
+});
+
 // 新建第二条工作流水线
 var line2 = master.AddLine("demo.line.2", func(args interface{}) {
 
